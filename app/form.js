@@ -33,6 +33,14 @@ export default function Form({directories})
 
                 <br/><br/>
 
+                <label htmlFor='includeJiraCheckbox'>Check JIRA tickets</label>
+                <input type='checkbox' id="includeJiraCheckbox" name='includeJiraCheckbox'/>
+                <p>
+                    If this is checked, the tool will attempt to include the descriptions of the JIRA tickets found in the commit titles. 
+                    Note: It might take some time to commmunicate with JIRA.
+                </p>
+
+                <br/>
                 <button>Submit</button>
 
                 <br/><br/>

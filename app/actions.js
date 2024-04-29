@@ -29,6 +29,50 @@ function ExecuteCommand(command) {
     });
   }
 
+  async function GetJIRAJSon(gitCommitsString, jiraInfo) 
+  {
+    let gitCommits = JSON.parse(gitCommitsString)
+
+
+    const regex = /([A-Za-z0-9]{4,7}-\d{1,4})/;
+    
+    const parts = jiraInfo.split(";");
+    const baseURL = parts[0];
+    const username = parts[1]; 
+    const password = parts[2]; 
+
+    for(let i = 0 ; i < gitCommits.commits.length ; i++)
+    {
+      const title = gitCommits.commits[i].title;
+      const result = title.match(regex);
+
+      if(result == null) // The JIRA ticket could not be found in the commit title
+        continue;
+
+      const jiraIssue = result[0];
+      const url = `${baseURL}/rest/api/2/issue/${jiraIssue}`;  
+      const credentials = Buffer.from(`${username}:${password}`, 'utf-8').toString('base64');
+
+      const headers = {
+        'Content-Type': 'application/json',
+        'Authorization': `Basic ${credentials}`,
+      };
+
+      const response = await fetch(url, { headers });
+
+      if (!response.ok) { // an error occured
+          continue;
+      }
+
+      const jiraJsonString = await response.text();
+      const jiraJson = JSON.parse(jiraJsonString);
+      const jiraDescription = jiraJson.fields.description;
+      gitCommits.commits[i].jiraDescription = jiraDescription;
+    }
+
+    return JSON.stringify(gitCommits);
+  }
+
 export async function createCommitList(
     prevState,
     formData,
@@ -66,7 +110,6 @@ export async function createCommitList(
     // #DBQ# will be replace by double quotes later when reating the JSON
     const prettyFormatOutput = '{#DBQ#id#DBQ#: #DBQ#%h#DBQ#, #DBQ#title#DBQ# : #DBQ#%s#DBQ#, #DBQ#description#DBQ# : #DBQ#%b#DBQ#},';
     cmd += 'git log --pretty=format:"' + prettyFormatOutput + '" --since="' + data.startDate + '" --until="' + data.endDate + '"'
-    console.log("command is: "+ cmd);
     let commandOutput = await ExecuteCommand(cmd);
 
     // replace all double quotes found in description or commit titles
@@ -76,7 +119,14 @@ export async function createCommitList(
 
     // Prepare JSON string
     commandOutput = commandOutput.replace(/#DBQ#/g, '"');
-    const jsonStr = '{"commits":  [' + commandOutput + ']}'
+    let jsonStr = '{"commits":  [' + commandOutput + ']}'
+
+    if((formData.get("includeJiraCheckbox") != null) && (process.env.GENAI_README_JIRA_INFO != undefined))
+    {
+      console.log("Fetching JIRA...");
+      jsonStr = await GetJIRAJSon(jsonStr, process.env.GENAI_README_JIRA_INFO);
+      console.log("Done!");
+    }
 
     revalidatePath("/");
     return { message: `${jsonStr}` };

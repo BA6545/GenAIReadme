@@ -1,28 +1,8 @@
 'use client'
 import React, {useState, useEffect} from 'react';
 
-export default function GPTOutput({gptInput, isGenerating, setIsGenerating})
+export default function GPTOutput({gptOutput, setGptOutput, isGenerating, setIsGenerating})
 {
-    const [gptOutput, setGptOutput] = useState("");
-
-    function SendToGPT(event)
-    {
-        event.preventDefault();
-        if(gptInput === "" || isGenerating)
-            return; 
-
-        setGptOutput("");
-        
-        fetch('/api/gptoutput/', {
-            method: 'post',
-            headers: {'Content-Type':'application/json'},
-            body: JSON.stringify({
-                gptInput : gptInput
-            })
-         });
-
-         setIsGenerating(true);
-    }
 
     useEffect(() => {
         let intervalId;
@@ -40,7 +20,7 @@ export default function GPTOutput({gptInput, isGenerating, setIsGenerating})
                 } 
                 else 
                 {
-                    clearInterval(interval);
+                    clearInterval(intervalId);
                 }
             }, 250);
         }

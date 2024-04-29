@@ -13,14 +13,34 @@ export default function GPTIO({gitCommits})
     
         if(gitCommits)
         {
-            gptInputText = "Act as a technical writer. Generate a paragraph that outlines the new changes for the current version of the software. ";
-            gptInputText += "Make it easy to understand. The target audience is the client of the application. ";
-            gptInputText += "Gather the required information from the following git titles and descriptions:\n\n";
+            let gptInputTextStart = "Act as a technical writer. Generate a paragraph that outlines the new changes for the current version of the software. ";
+            gptInputTextStart += "Make it easy to understand. The target audience is the client of the application. ";
+            gptInputTextStart += "Gather the required information from the following git commit titles and descriptions. ";
+            
+            let atLeastOneJIRADescriptionFound = false;
+
             const jsonObj = JSON.parse(gitCommits);
+            let gptInputTextBody = "";
+
             jsonObj.commits.forEach(element => {
-                gptInputText += "title: " + element.title + "\n"; 
-                gptInputText += "description: " + element.description + "\n\n";
+                gptInputTextBody += "title: " + element.title + "\n"; 
+
+                if(element.jiraDescription)
+                {
+                    atLeastOneJIRADescriptionFound = true;
+                    gptInputTextBody += "JIRA: " + element.jiraDescription + "\n";
+                }
+
+                gptInputTextBody += "description: " + element.description + "\n\n"; 
             });
+
+            if(atLeastOneJIRADescriptionFound)
+            {
+                gptInputTextStart += "Some git commit might will have a JIRA description that give you a hint of what has been done in the commit."
+            }
+
+            gptInputTextStart += "\n\n";
+            gptInputText = gptInputTextStart + gptInputTextBody;
         }
     
         setGptInput(gptInputText);
@@ -55,7 +75,7 @@ export default function GPTIO({gitCommits})
                     <button onClick={SendToGPT}>Send to GPT</button>
                 </p>
                 <br/>
-                <GPTOutput gptInput={gptInput} isGenerating={isGenerating} setIsGenerating={setIsGenerating}/>
+                <GPTOutput gptOutput={gptOutput} setGptOutput={setGptOutput} isGenerating={isGenerating} setIsGenerating={setIsGenerating}/>
             </form>
         </div>
         
